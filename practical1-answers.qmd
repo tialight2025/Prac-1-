@@ -1,7 +1,7 @@
 ---
 title: "Practical 1 Answers"
 subtitle: "Working with Data: Tools for Collaborating on a Project"
-author: "Your Name Here"
+author: "Tia Light"
 date: today
 format:
   html:
@@ -50,8 +50,8 @@ Download the `.csv` files and use `readr::read_csv()` to read each dataset into 
 ```{r}
 #| label: read-data
 
-# pixar_films <- read_csv("data/pixar-films.csv")
-# public_response <- read_csv("data/pixar-films-response.csv")
+pixar_films <- read_csv("data/pixar-films.csv")
+public_response <- read_csv("data/pixar-films-response.csv")
 ```
 
 ### Question 2
@@ -60,6 +60,29 @@ Inspect each dataset. What data is missing? Is the missingness coded uniformly? 
 
 ```{r}
 #| label: inspect-data
+
+
+View(pixar_films)
+pixar_films |> summarise(across(everything(), ~ sum(is.na(.))))
+pixar_films |> summarise(across(c(number,film_rating), ~ sum(. %in% c("Not Rated", "N/A"))))
+
+# Correct N/A coding
+pixar_films <- pixar_films |> 
+  mutate(film_rating = na_if(film_rating, "N/A")) |> 
+  mutate(film_rating = na_if(film_rating, "Not Rated"))
+
+# outliers in runtime
+ggplot(pixar_films) + geom_histogram(aes(x = run_time))
+
+# replace outliers with NAs
+pixar_films <- pixar_films |> mutate(run_time = replace_when(run_time, run_time > 145 ~ NA))
+
+# inspect all NAs
+pixar_films |> filter(if_any(everything(), is.na))
+
+View(public_response)
+# correctly coded missing data in all columns except film
+public_response |> summarise(across(everything(), ~ sum(is.na(.))))
 
 ```
 
@@ -76,6 +99,13 @@ Use functions from `naniar` to summarise the missingness for each dataset. Does 
 ```{r}
 #| label: missingness-summary
 
+naniar::miss_var_summary(pixar_films)
+naniar::vis_miss(pixar_films)
+
+naniar::miss_var_summary(public_response)
+naniar::vis_miss(public_response)
+
+
 ```
 
 
@@ -89,6 +119,27 @@ Clean up the data. You may find row manipulations from the `dplyr` package usefu
 ```{r}
 #| label: clean-data
 
+# The unnamed film is Elemental, identifiable by its release date.
+# Use dplyr::rows_update() to correct the known errors/fill in known values,
+# matching by release_date since film itself is one of the missing values.
+pixar_films <- pixar_films |>
+  rows_update(
+    tibble(
+      release_date = as.Date(c(
+        "2021-06-18", # Luca
+        "2022-03-11", # Turning Red
+        "2022-06-17", # Lightyear
+        "2023-06-16"  # Elemental
+      )),
+      film = c("Luca", "Turning Red", "Lightyear", "Elemental"),
+      run_time = c(95, 100, 105, 103),
+      film_rating = c("PG", "PG", "PG", "PG")
+    ),
+    by = "release_date"
+  )
+
+pixar_films
+
 ```
 
 ### Question 5
@@ -97,6 +148,17 @@ Now that they are clean, merge the two datasets using one of the `dplyr::*_join(
 
 ```{r}
 #| label: merge-data
+
+
+# left_join() keeps every film in pixar_films (the "complete" list of 27
+# films) and fills in NA for any film with no matching row in
+# public_response.
+pixar_data <- left_join(pixar_films, public_response, by = "film")
+
+pixar_data
+
+naniar::vis_miss(pixar_data)
+
 
 ```
 
@@ -110,9 +172,9 @@ Now that they are clean, merge the two datasets using one of the `dplyr::*_join(
 
 What bias is present in the dataset? Can it be corrected?
 
+The clearest bias is a temporal bias: the three most recently released films (Turning Red, Lightyear, Elemental) are absent from public_response, so any summary of critical/audience reception computed from the data would silently exclude these outputs. This is at least partly correctable, since real critic/audience scores exist for these films.
 
-
-
+More recent Pixar films (e.g. Toy Story 5) are also missing from the dataset!
 
 ### Question 7
 
@@ -121,6 +183,22 @@ If you identified bias that can be corrected, add it (e.g. using `dplyr::rows_in
 ```{r}
 #| label: correct-bias
 
+# Real critic/audience scores for the three missing films, collected from
+# Rotten Tomatoes and Metacritic (accessed 2026-08).
+missing_response <- tribble(
+  ~film,          ~rotten_tomatoes, ~metacritic, ~cinema_score, ~critics_choice,
+  "Turning Red",  95,               83,          NA,            NA,
+  "Lightyear",    74,               60,          "A",           NA,
+  "Elemental",    75,               59,          "A",           NA
+)
+
+public_response <- public_response |>
+  rows_insert(missing_response, by = "film")
+
+# Re-do the merge now that public_response is more complete.
+pixar_data <- left_join(pixar_films, public_response, by = "film")
+
+pixar_data
 ```
 
 ### Question 8
@@ -129,6 +207,43 @@ Collect some additional data for each movie from the internet (e.g. Wikipedia), 
 
 ```{r}
 #| label: additional-data
+
+# Directors for each film, collected from Wikipedia.
+directors <- tribble(
+  ~film,                   ~director,
+  "Toy Story",             "John Lasseter",
+  "A Bug's Life",          "John Lasseter",
+  "Toy Story 2",           "John Lasseter",
+  "Monsters, Inc.",        "Pete Docter",
+  "Finding Nemo",          "Andrew Stanton",
+  "The Incredibles",       "Brad Bird",
+  "Cars",                  "John Lasseter",
+  "Ratatouille",           "Brad Bird",
+  "WALL-E",                "Andrew Stanton",
+  "Up",                    "Pete Docter",
+  "Toy Story 3",           "Lee Unkrich",
+  "Cars 2",                "John Lasseter",
+  "Brave",                 "Mark Andrews",
+  "Monsters University",   "Dan Scanlon",
+  "Inside Out",            "Pete Docter",
+  "The Good Dinosaur",     "Peter Sohn",
+  "Finding Dory",          "Andrew Stanton",
+  "Cars 3",                "Brian Fee",
+  "Coco",                  "Lee Unkrich",
+  "Incredibles 2",         "Brad Bird",
+  "Toy Story 4",           "Josh Cooley",
+  "Onward",                "Dan Scanlon",
+  "Soul",                  "Pete Docter",
+  "Luca",                  "Enrico Casarosa",
+  "Turning Red",           "Domee Shi",
+  "Lightyear",             "Angus MacLane",
+  "Elemental",             "Peter Sohn"
+)
+
+pixar_data <- pixar_data |>
+  left_join(directors, by = "film")
+
+pixar_data
 
 ```
 
@@ -141,10 +256,28 @@ Create plots of the data that visualise two different aspects of the data.
 ```{r}
 #| label: plot-1
 
+# Aspect 1: has critical reception (Rotten Tomatoes score) changed over time?
+ggplot(pixar_data, aes(x = release_date, y = rotten_tomatoes)) +
+  geom_point() +
+  scale_x_date("Release date") +
+  scale_y_continuous("Rotten Tomatoes score (%)") +
+  ggtitle("Pixar films' critical reception over time") +
+  theme_bw()
+
+
 ```
 
 ```{r}
 #| label: plot-2
+
+# Aspect 2: how does runtime relate to age rating?
+ggplot(pixar_data, aes(x = film_rating, y = run_time)) +
+  geom_boxplot() +
+  geom_jitter(width = 0.1, alpha = 0.6) +
+  scale_x_discrete("Film rating") +
+  scale_y_continuous("Run time (mins)") +
+  ggtitle("Runtime by age rating") +
+  theme_bw()
 
 ```
 
