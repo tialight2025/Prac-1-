@@ -62,7 +62,7 @@ Inspect each dataset. What data is missing? Is the missingness coded uniformly? 
 #| label: inspect-data
 
 
-View(pixar_films)
+pixar_films
 pixar_films |> summarise(across(everything(), ~ sum(is.na(.))))
 pixar_films |> summarise(across(c(number,film_rating), ~ sum(. %in% c("Not Rated", "N/A"))))
 
@@ -80,7 +80,7 @@ pixar_films <- pixar_films |> mutate(run_time = replace_when(run_time, run_time 
 # inspect all NAs
 pixar_films |> filter(if_any(everything(), is.na))
 
-View(public_response)
+public_response
 # correctly coded missing data in all columns except film
 public_response |> summarise(across(everything(), ~ sum(is.na(.))))
 
