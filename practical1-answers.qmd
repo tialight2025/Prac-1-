@@ -1,0 +1,170 @@
+---
+title: "Practical 1 Answers"
+subtitle: "Working with Data: Tools for Collaborating on a Project"
+author: "Your Name Here"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    code-fold: false
+    link-external-newwindow: true
+    link-external-icon: true
+editor: source
+---
+
+<!--
+Before you start:
+
+- Make sure this file lives in the root of your project repository, alongside
+  a `data/` folder containing pixar-films.csv and pixar-films-response.csv
+  (see the practical instructions for the download links).
+- See the README.md in this repository for package installation instructions
+  and Git/GitHub tips.
+- Render this document with the "Render" button in RStudio, or by running
+  quarto::quarto_render("practical1-answers.qmd") in the R console.
+-->
+
+## Getting started
+
+```{r}
+#| label: setup
+#| message: false
+#| warning: false
+
+# Load the packages you need for this practical.
+# See the README for installation instructions if any of these are missing.
+library(readr)
+library(dplyr)
+library(naniar)
+library(ggplot2)
+library(tibble)
+```
+
+## Reading in data
+
+### Question 1
+
+Download the `.csv` files and use `readr::read_csv()` to read each dataset into R.
+
+```{r}
+#| label: read-data
+
+# pixar_films <- read_csv("data/pixar-films.csv")
+# public_response <- read_csv("data/pixar-films-response.csv")
+```
+
+### Question 2
+
+Inspect each dataset. What data is missing? Is the missingness coded uniformly? Is it structural missingness, or can it be corrected?
+
+```{r}
+#| label: inspect-data
+
+```
+
+
+
+
+
+## Working with missingness
+
+### Question 3
+
+Use functions from `naniar` to summarise the missingness for each dataset. Does it capture all the missing data?
+
+```{r}
+#| label: missingness-summary
+
+```
+
+
+
+
+
+### Question 4
+
+Clean up the data. You may find row manipulations from the `dplyr` package useful (e.g. `dplyr::rows_update()`).
+
+```{r}
+#| label: clean-data
+
+```
+
+### Question 5
+
+Now that they are clean, merge the two datasets using one of the `dplyr::*_join()` functions. Does it matter which join function you use? Why/why not?
+
+```{r}
+#| label: merge-data
+
+```
+
+
+
+
+
+## Bias
+
+### Question 6
+
+What bias is present in the dataset? Can it be corrected?
+
+
+
+
+
+### Question 7
+
+If you identified bias that can be corrected, add it (e.g. using `dplyr::rows_insert()`, similar to `dplyr::rows_update()`).
+
+```{r}
+#| label: correct-bias
+
+```
+
+### Question 8
+
+Collect some additional data for each movie from the internet (e.g. Wikipedia), and add it to the merged dataset. Create a new dataset (either as a `.csv` or directly in your script) and join it in with `dplyr::left_join()`.
+
+```{r}
+#| label: additional-data
+
+```
+
+## Visualisation
+
+### Question 9
+
+Create plots of the data that visualise two different aspects of the data.
+
+```{r}
+#| label: plot-1
+
+```
+
+```{r}
+#| label: plot-2
+
+```
+
+## Finishing up
+
+### Question 10
+
+Is your code transparent and understandable? Make sure the chunks above are commented to explain the purpose and techniques used, and that this document includes a short description of what it does (see the top of this file).
+
+### Question 11
+
+Can your code run as a reproducible standalone script (i.e. no user input)? Check that it runs top-to-bottom in a fresh R session (`Restart R` then `Render`).
+
+### Question 12
+
+Ensure you save a copy of the raw data, new data, and script together, and write your tidy data to file with `readr::write_csv()`.
+
+```{r}
+#| label: save-output
+#| eval: false
+
+# write_csv(merged_data, "data/pixar-films-clean.csv")
+```
